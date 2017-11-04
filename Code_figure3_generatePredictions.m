@@ -1,6 +1,6 @@
 close all;clear all;clc;
 
-% start and end of lines (=compounds) in the data files you want to consider 
+% start and end of lines (=compounds) in the data files you want to consider
 s=1;e=614;
 
 %% for the MPM (mesothelioma) files
@@ -8,7 +8,7 @@ s=1;e=614;
 sf=1;
 % end column of features
 ef=193;
-% number of features 
+% number of features
 f=ef-sf+1;
 % column with the gene ids
 c=198;
@@ -18,10 +18,8 @@ c=198;
 sf1=9;
 % end column of features
 ef1=44;
-%number of features 
+%number of features
 f1=ef1-sf1+1;
-
-
 
 % load MPM files replicate 1
 M01=readtable('MPM04_R1_v1.csv');
@@ -70,7 +68,7 @@ F11=zscore((M11{s:e,sf1:ef1}+M11{s:e,sf1:ef1})/2);
 FF=[F01,F03,F04,F05,F06,F07,F08,F09,F10];
 % DoceLessN data
 FFF=F11;
-
+ClassProb = zeros(e,9,114);
 
 
 tic
@@ -78,35 +76,43 @@ tic
 
 % loop on the compounds
 for test_ind=s:e
-
-test_ind
-% all the rows without the tested compound (test_ind)
-train_ind=~ismember(s:e, test_ind);
-
-% column 'TargetGeneNum' with a unique identifier for each target, with the rows corresponding to all the trained target (train_ind)
-C01=M01{train_ind,c};
-
-% parallelized for loop on the 9 MPM cell lines
-parfor i=1:9   
-  % train data
-  Train=FF(train_ind,f*(i-1)+1:f*i);
-  % test data
-  Test=FF(test_ind,f*(i-1)+1:f*i);
-
-  % train the model
-  Mdl = fitensemble(Train,C01,'Bag',30,'Tree','type','classification');
-  % get prediction and store it
-  [K(test_ind,i),ClassProb(test_ind,i,:)]= predict(Mdl,Test);
-
-end % end loop MPM cell lines
-
-% same with the DoceLessN cell line
-i=1;
-Train=FFF(train_ind,f1*(i-1)+1:f1*i);
-Test=FFF(test_ind,f1*(i-1)+1:f1*i);
-Mdl = fitensemble(Train,C01,'Bag',30,'Tree','type','classification');
-[K(test_ind,10+i),ClassProb(test_ind,10+i,:)]= predict(Mdl,Test);
-
+    
+    test_ind
+    % all the rows without the tested compound (test_ind)
+    train_ind=~ismember(s:e, test_ind);
+    
+    % column 'TargetGeneNum' with a unique identifier for each target, with the rows corresponding to all the trained target (train_ind)
+    C01=M01{train_ind,c};
+    
+    % parallelized for loop on the 9 MPM cell lines
+    for i=1:9
+        % train data
+        Train=FF(train_ind,f*(i-1)+1:f*i);
+        % test data
+        Test=FF(test_ind,f*(i-1)+1:f*i);
+        
+        % train the model
+        Mdl = fitensemble(Train,C01,'Bag',30,'Tree','type','classification');
+        % get prediction and store it
+        indxClasses = Mdl.ClassNames;
+        [klab,cprob] = predict(Mdl,Test);
+        K(test_ind,i) = klab;
+        ClassProb(test_ind,i,indxClasses) = cprob;
+        %[K(test_ind,i),ClassProb(test_ind,i,:)]= predict(Mdl,Test);
+        
+    end % end loop MPM cell lines
+    
+    % same with the DoceLessN cell line
+    i=1;
+    Train=FFF(train_ind,f1*(i-1)+1:f1*i);
+    Test=FFF(test_ind,f1*(i-1)+1:f1*i);
+    Mdl = fitensemble(Train,C01,'Bag',30,'Tree','type','classification');
+    %[K(test_ind,10+i),ClassProb(test_ind,10+i,:)]= predict(Mdl,Test);
+    
+    [klab,cprob] = predict(Mdl,Test);
+    K(test_ind,10+i) = klab;
+    ClassProb(test_ind,10+i,Mdl.ClassNames) = cprob;
+    
 end % end loop compounds
 
 
@@ -117,5 +123,3 @@ toc
 
 % save ClassProb
 save VoteEnsemble10.mat ClassProb;
-
-
