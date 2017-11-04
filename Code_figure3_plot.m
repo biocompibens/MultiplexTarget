@@ -2,14 +2,14 @@
 
 
 close all;clear all;clc;
-load VoteEnsemble10_1.mat;
+load VoteEnsemble10.mat;
 
 % number of cell lines
 n=10;
 % number of compounds
 o=614;
 % number of targets
-dc=113;
+dc=114;
 
 A=1:n;
 
@@ -84,5 +84,3 @@ ylabel('Percentage accuracy','FontSize', 16,'FontName','Helvetica');
 %legend('Ensemble voting top 5','Ensemble voting top 1','Random chance', 'Location', 'southwestoutside');
 print('emsembleVoting10.pdf','-r300','-dpdf');
 saveas(gcf, 'ensembleVoting10.svg');
-
-
